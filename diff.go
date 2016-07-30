@@ -137,7 +137,7 @@ func search(x, y, lenX, lenY int, mat matrix) (result match) {
 // A diff.Interface implementation with plugable Equal function
 type impl struct {
 	len1, len2 int
-	equal func(i, j int) bool
+	equal      func(i, j int) bool
 }
 
 // Required per diff.Interface
