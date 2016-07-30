@@ -3,7 +3,7 @@
 package diff // import "github.com/solarsea/diff"
 
 import (
-	bits "github.com/solarsea/misc/bits"
+	bits "github.com/solarsea/bits"
 )
 
 // Interface abstracts the required knowledge to perform a diff
