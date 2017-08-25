@@ -31,15 +31,15 @@ type Delta struct {
 // with added entries' indices in the second sequence and removed from the first
 func Diff(data Interface) Delta {
 	var len1, len2 = data.Len()
-	var mat matrix = matrix{v: bits.NewBit(uint(len1 * len2)), lenX: len1, lenY: len2}
+	var mx *matrix = &matrix{v: bits.NewBit(uint(len1 * len2)), lenX: len1, lenY: len2}
 
 	for i := 0; i < len1; i++ {
 		for j := 0; j < len2; j++ {
-			mat.v.Poke(mat.at(i, j), data.Equal(i, j))
+			mx.v.Poke(mx.at(i, j), data.Equal(i, j))
 		}
 	}
 
-	return recursiveDiff(box{0, 0, len1, len2}, mat)
+	return mx.recursiveDiff(box{0, 0, len1, len2})
 }
 
 type match struct {
@@ -60,12 +60,12 @@ type matrix struct {
 }
 
 // Translates (x, y) to an absolute position on the bit vector
-func (m *matrix) at(x, y int) uint {
-	return uint(y + (x * m.lenY))
+func (mx *matrix) at(x, y int) uint {
+	return uint(y + (x * mx.lenY))
 }
 
-func recursiveDiff(bounds box, mat matrix) Delta {
-	var m match = largest(bounds, mat)
+func (mx *matrix) recursiveDiff(bounds box) Delta {
+	var m match = mx.largest(bounds)
 
 	if m.length == 0 { // Recursion terminates
 		var immediate Delta
@@ -78,8 +78,8 @@ func recursiveDiff(bounds box, mat matrix) Delta {
 		return immediate
 	}
 
-	var left Delta = recursiveDiff(box{bounds.x, bounds.y, m.x, m.y}, mat)
-	var right Delta = recursiveDiff(box{m.x + m.length, m.y + m.length, bounds.lenX, bounds.lenY}, mat)
+	var left Delta = mx.recursiveDiff(box{bounds.x, bounds.y, m.x, m.y})
+	var right Delta = mx.recursiveDiff(box{m.x + m.length, m.y + m.length, bounds.lenX, bounds.lenY})
 
 	var result Delta
 
@@ -91,12 +91,12 @@ func recursiveDiff(bounds box, mat matrix) Delta {
 
 // Finds the largest common substring by looking at the provided match matrix
 // starting from (bounds.x, bounds.y) with lengths bounds.lenX, bounds.lenY
-func largest(bounds box, mat matrix) match {
+func (mx *matrix) largest(bounds box) match {
 	var result match
 
 	// Look for LCS in the too-right half, including the main diagonal
 	for i := bounds.x; i < bounds.lenX && result.length < (bounds.lenX-i); i++ {
-		var m match = search(i, bounds.y, bounds.lenX, bounds.lenY, mat)
+		var m match = mx.search(box{i, bounds.y, bounds.lenX, bounds.lenY})
 		if m.length > result.length {
 			result = m
 		}
@@ -104,7 +104,7 @@ func largest(bounds box, mat matrix) match {
 
 	// Look for LCS in the bottom-left half, excluding the main diagonal
 	for j := bounds.y + 1; j < bounds.lenY && result.length < (bounds.lenY-j); j++ {
-		var m match = search(bounds.x, j, bounds.lenX, bounds.lenY, mat)
+		var m match = mx.search(box{bounds.x, j, bounds.lenX, bounds.lenY})
 		if m.length > result.length {
 			result = m
 		}
@@ -113,13 +113,13 @@ func largest(bounds box, mat matrix) match {
 }
 
 // Searches the main diagonal for the longest sequential match line
-func search(x, y, lenX, lenY int, mat matrix) (result match) {
+func (mx *matrix) search(bounds box) (result match) {
 	var inMatch bool
 	var m match
-	for step := 0; step+x < lenX && step+y < lenY; step++ {
-		if mat.v.Peek(mat.at(step+x, step+y)) {
+	for step := 0; step+bounds.x < bounds.lenX && step+bounds.y < bounds.lenY; step++ {
+		if mx.v.Peek(mx.at(step+bounds.x, step+bounds.y)) {
 			if !inMatch { // Create a new current record if there is none ...
-				inMatch, m.x, m.y, m.length = true, step+x, step+y, 1
+				inMatch, m.x, m.y, m.length = true, step+bounds.x, step+bounds.y, 1
 			} else { // ... otherwise just increment the existing
 				m.length++
 			}
