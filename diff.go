@@ -32,10 +32,11 @@ type Delta struct {
 func Diff(data Interface) Delta {
 	var len1, len2 = data.Len()
 	var mx *matrix = &matrix{v: bits.NewBit(uint(len1 * len2)), lenX: len1, lenY: len2}
+	mx.matches = make(map[point]int)
 
 	for i := 0; i < len1; i++ {
 		for j := 0; j < len2; j++ {
-			mx.v.Poke(mx.at(i, j), data.Equal(i, j))
+			mx.v.Poke(mx.at(point{i, j}), data.Equal(i, j))
 		}
 	}
 
@@ -61,11 +62,12 @@ type box struct {
 type matrix struct {
 	v          bits.Vector
 	lenX, lenY int
+	matches map[point]int
 }
 
 // Translates (x, y) to an absolute position on the bit vector
-func (mx *matrix) at(x, y int) uint {
-	return uint(y + (x * mx.lenY))
+func (mx *matrix) at(p point) uint {
+	return uint(p.y + (p.x * mx.lenY))
 }
 
 func (mx *matrix) recursiveDiff(bounds box) Delta {
@@ -120,20 +122,31 @@ func (mx *matrix) largest(bounds box) match {
 func (mx *matrix) search(bounds box) (result match) {
 	var inMatch bool
 	var m match
-	for step := 0; step+bounds.x < bounds.lenX && step+bounds.y < bounds.lenY; step++ {
-		if mx.v.Peek(mx.at(step+bounds.x, step+bounds.y)) {
+	for step := 0; step+bounds.x < bounds.lenX && step+bounds.y < bounds.lenY; {
+		var current point = point{step+bounds.x, step+bounds.y}
+		if length, found := mx.matches[current]; found {
+			if length > result.length {
+				result.point = current
+				result.length = length
+			}
+			step += length
+			continue
+		}
+		if mx.v.Peek(mx.at(current)) {
 			if !inMatch { // Create a new current record if there is none ...
-				inMatch, m.x, m.y, m.length = true, step+bounds.x, step+bounds.y, 1
+				inMatch, m.point, m.length = true, current, 1
 			} else { // ... otherwise just increment the existing
 				m.length++
 			}
-
+			// Update the length in the cache
+			mx.matches[m.point] = m.length
 			if m.length > result.length {
 				result = m // Store it if it is longer ...
 			}
 		} else { // End of current of match
 			inMatch = false // ... and reset the current one
 		}
+		step++
 	}
 	return
 }
