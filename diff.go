@@ -39,16 +39,20 @@ func Diff(data Interface) Delta {
 		}
 	}
 
-	return mx.recursiveDiff(box{0, 0, len1, len2})
+	return mx.recursiveDiff(box{point{0, 0}, len1, len2})
+}
+
+type point struct {
+	x, y   int
 }
 
 type match struct {
-	x, y   int
+	point
 	length int
 }
 
 type box struct {
-	x, y       int
+	point
 	lenX, lenY int
 }
 
@@ -78,8 +82,8 @@ func (mx *matrix) recursiveDiff(bounds box) Delta {
 		return immediate
 	}
 
-	var left Delta = mx.recursiveDiff(box{bounds.x, bounds.y, m.x, m.y})
-	var right Delta = mx.recursiveDiff(box{m.x + m.length, m.y + m.length, bounds.lenX, bounds.lenY})
+	var left Delta = mx.recursiveDiff(box{point{bounds.x, bounds.y}, m.x, m.y})
+	var right Delta = mx.recursiveDiff(box{point{m.x + m.length, m.y + m.length}, bounds.lenX, bounds.lenY})
 
 	var result Delta
 
@@ -96,7 +100,7 @@ func (mx *matrix) largest(bounds box) match {
 
 	// Look for LCS in the too-right half, including the main diagonal
 	for i := bounds.x; i < bounds.lenX && result.length < (bounds.lenX-i); i++ {
-		var m match = mx.search(box{i, bounds.y, bounds.lenX, bounds.lenY})
+		var m match = mx.search(box{point{i, bounds.y}, bounds.lenX, bounds.lenY})
 		if m.length > result.length {
 			result = m
 		}
@@ -104,7 +108,7 @@ func (mx *matrix) largest(bounds box) match {
 
 	// Look for LCS in the bottom-left half, excluding the main diagonal
 	for j := bounds.y + 1; j < bounds.lenY && result.length < (bounds.lenY-j); j++ {
-		var m match = mx.search(box{bounds.x, j, bounds.lenX, bounds.lenY})
+		var m match = mx.search(box{point{bounds.x, j}, bounds.lenX, bounds.lenY})
 		if m.length > result.length {
 			result = m
 		}
