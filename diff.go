@@ -44,7 +44,7 @@ func Diff(data Interface) Delta {
 }
 
 type point struct {
-	x, y   int
+	x, y int
 }
 
 type match struct {
@@ -62,7 +62,7 @@ type box struct {
 type matrix struct {
 	v          bits.Vector
 	lenX, lenY int
-	matches map[point]int
+	matches    map[point]int
 }
 
 // Translates (x, y) to an absolute position on the bit vector
@@ -123,7 +123,7 @@ func (mx *matrix) search(bounds box) (result match) {
 	var inMatch bool
 	var m match
 	for step := 0; step+bounds.x < bounds.lenX && step+bounds.y < bounds.lenY; {
-		var current point = point{step+bounds.x, step+bounds.y}
+		var current point = point{step + bounds.x, step + bounds.y}
 		if length, found := mx.matches[current]; found {
 			if length > result.length {
 				result.point = current
