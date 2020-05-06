@@ -1,4 +1,4 @@
-package diff // import "github.com/solarsea/diff"
+package diff // import "github.com/spaskalev/diff"
 
 import (
 	"fmt"
